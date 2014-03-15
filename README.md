@@ -40,3 +40,7 @@ location {
   auth_basic_user_file /path/to/htpasswd;
 }
 ```
+
+TODO
+----
+- ipv6 support
