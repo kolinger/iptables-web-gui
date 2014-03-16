@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8"/>
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+
+		<title>iptables</title>
+
+		<link href="./assets/css/bootstrap.min.css" rel="stylesheet"/>
+		<link href="./assets/css/bootstrap-theme.min.css" rel="stylesheet"/>
+	</head>
+	<body>
+		<nav class="navbar navbar-default" role="navigation">
+			<div class="container-fluid">
+				<div class="navbar-header">
+					<a class="navbar-brand" href="./index.php">iptables</a>
+				</div>
+
+				<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+					<ul class="nav navbar-nav">
+						<li><a href="./index.php">Dashboard</a></li>
+						<li><a href="#" data-toggle="modal" data-target="#importModal">Import</a></li>
+						<li><a href="?export">Export</a></li>
+						<?php if (!$iptables->getOnFly()) : ?>
+							<li><a href="?reload">Reload</a></li>
+						<?php endif ?>
+					</ul>
+				</div>
+			</div>
+		</nav>
+
+		<div class="modal fade" id="importModal" tabindex="-1" role="dialog" aria-labelledby="importModalLabel"
+			 aria-hidden="true">
+
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+						<h4 class="modal-title" id="myModalLabel">Select file for import</h4>
+					</div>
+					<form role="form" method="post" action="?import" enctype="multipart/form-data">
+						<div class="modal-body">
+							<input type="file" name="file" />
+						</div>
+						<div class="modal-footer">
+							<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+							<input type="submit" class="btn btn-primary" value="Import" />
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+
+		<div class="container-fluid">
+			<?php foreach ($flashes as $type => $messages) : ?>
+				<?php foreach ($messages as $message) : ?>
+					<div class="alert alert-<?php echo $type ?>"><?php echo $message ?></div>
+				<?php endforeach ?>
+			<?php endforeach ?>
+
+			<?php if ($editDialogDisplayed) : ?>
+				<form role="form" action="<?php $editDialogAction ?>" method="post">
+					<div class="form-group">
+						<label for="table">Table</label>
+						<select name="table" id="table" class="form-control">
+							<option value="filter"<?php echo isset($_GET['table']) && $_GET['table'] === 'filter' ? ' selected="selected"' : '' ?>>filter</option>
+							<option value="nat"<?php echo isset($_GET['table']) && $_GET['table'] === 'nat' ? ' selected="selected"' : '' ?>>nat</option>
+						</select>
+					</div>
+					<div class="form-group">
+						<label for="chain">Chain</label>
+						<select name="chain" id="chain" class="form-control">
+							<option value="INPUT"<?php echo isset($_GET['chain']) && $_GET['chain'] === 'INPUT' ? ' selected="selected"' : '' ?>>INPUT</option>
+							<option value="FORWARD"<?php echo isset($_GET['chain']) && $_GET['chain'] === 'FORWARD' ? ' selected="selected"' : '' ?>>FORWARD</option>
+							<option value="OUTPUT"<?php echo isset($_GET['chain']) && $_GET['chain'] === 'OUTPUT' ? ' selected="selected"' : '' ?>>OUTPUT</option>
+							<option value="PREROUTING"<?php echo isset($_GET['chain']) && $_GET['chain'] === 'PREROUTING' ? ' selected="selected"' : '' ?>>PREROUTING</option>
+							<option value="POSTROUTING"<?php echo isset($_GET['chain']) && $_GET['chain'] === 'POSTROUTING' ? ' selected="selected"' : '' ?>>POSTROUTING</option>
+						</select>
+					</div>
+					<div class="form-group">
+						<label for="in">Input interface</label>
+						<input type="text" name="in" id="in" class="form-control"
+							   value="<?php echo isset($_GET['in']) ? $_GET['in'] : '' ?>" />
+					</div>
+					<div class="form-group">
+						<label for="out">Output interface</label>
+						<input type="text" name="out" id="out" class="form-control"
+							   value="<?php echo isset($_GET['out']) ? $_GET['out'] : '' ?>" />
+					</div>
+					<div class="form-group">
+						<label for="source">Source IP (with mask, example: 192.168.0.1/24)</label>
+						<input type="text" name="source" id="source" class="form-control"
+							   value="<?php echo isset($_GET['source']) ? $_GET['source'] : '' ?>" />
+					</div>
+					<div class="form-group">
+						<label for="destination">Destination IP (with mask, example: 192.168.0.1/24)</label>
+						<input type="text" name="destination" id="destination" class="form-control"
+							   value="<?php echo isset($_GET['destination']) ? $_GET['destination'] : '' ?>" />
+					</div>
+					<div class="form-group">
+						<label for="protocol">Protocol</label>
+						<select name="protocol" id="protocol" class="form-control">
+							<option value=""></option>
+							<option value="tcp"<?php echo isset($_GET['protocol']) && $_GET['protocol'] === 'tcp' ? ' selected="selected"' : '' ?>>tcp</option>
+							<option value="udp"<?php echo isset($_GET['protocol']) && $_GET['protocol'] === 'udp' ? ' selected="selected"' : '' ?>>udp</option>
+							<option value="icpm"<?php echo isset($_GET['protocol']) && $_GET['protocol'] === 'icpm' ? ' selected="selected"' : '' ?>>icpm</option>
+						</select>
+					</div>
+					<div class="form-group">
+						<label for="dport">Destination port (or port range delimited by colon, example: 20:21)</label>
+						<input type="text" name="dport" id="dport" class="form-control"
+							   value="<?php echo isset($_GET['dport']) ? $_GET['dport'] : '' ?>" />
+					</div>
+					<div class="form-group">
+						<label for="sport">Source port (or port range delimited by colon, example: 20:21)</label>
+						<input type="text" name="sport" id="sport" class="form-control"
+							   value="<?php echo isset($_GET['sport']) ? $_GET['sport'] : '' ?>" />
+					</div>
+					<div class="form-group">
+						<label for="additional">Additional arguments (normal iptables parameters, see man iptables)</label>
+						<input type="text" name="additional" id="additional" class="form-control"
+							   value="<?php echo isset($_GET['additional']) ? $_GET['additional'] : '' ?>" />
+					</div>
+					<div class="form-group">
+						<label for="target">Target</label>
+						<select name="target" id="target" class="form-control">
+							<option value="ACCEPT"<?php echo isset($_GET['target']) && $_GET['target'] === 'ACCEPT' ? ' selected="selected"' : '' ?>>ACCEPT</option>
+							<option value="DENY"<?php echo isset($_GET['target']) && $_GET['target'] === 'DENY' ? ' selected="selected"' : '' ?>>DENY</option>
+							<option value="MASQUERADE"<?php echo isset($_GET['target']) && $_GET['target'] === 'MASQUERADE' ? ' selected="selected"' : '' ?>>MASQUERADE</option>
+							<option value="REDIRECT"<?php echo isset($_GET['target']) && $_GET['target'] === 'REDIRECT' ? ' selected="selected"' : '' ?>>REDIRECT</option>
+						</select>
+					</div>
+					<a href="./index.php" class="btn btn-default">Cancel</a>
+					<input type="submit" value="Save" class="btn btn-primary" />
+				</form>
+			<?php else : ?>
+				<?php foreach ($iptables->getTables() as $tableName => $chains) : ?>
+					<div class="page-header">
+						<h1><?php echo $tableName ?></h1>
+					</div>
+
+					<?php foreach ($chains as $chainName => $chain) : ?>
+						<h2>
+							<?php echo $chainName ?>
+							<span class="label label-<?php echo $chain['policy'] === 'ACCEPT' ? 'success' : 'danger' ?>">
+								<?php echo $chain['policy'] ?>
+							</span>
+						</h2>
+
+						<?php if (count($chain['rules']) === 0) : ?>
+							<p>No rules found.</p>
+						<?php else : ?>
+							<table class="table table-hover">
+								<thead>
+									<tr>
+										<th>In inf.</th>
+										<th>Out inf.</th>
+										<th>Source IP</th>
+										<th>Dest. IP</th>
+										<th>Protocol</th>
+										<th>Additional params</th>
+										<th>Target</th>
+										<th>Actions</th>
+									</tr>
+								</thead>
+								<tbody>
+									<?php foreach ($chain['rules'] as $rule) : ?>
+										<tr>
+											<td><?php echo $rule->in ?></td>
+											<td><?php echo $rule->out ?></td>
+											<td><?php echo $rule->source ?></td>
+											<td><?php echo $rule->destination ?></td>
+											<td><?php echo $rule->prot ?></td>
+											<td><?php echo $rule->misc ?></td>
+											<td>
+												<span class="label label-<?php echo $rule->target === 'ACCEPT' ? 'success' :
+													($rule->target === 'DROP' ? 'danger' : 'default') ?>">
+													<?php echo $rule->target ?>
+												</span>
+											</td>
+											<td>
+												<a href="?edit&<?php echo buildQueryFromRule($rule, $tableName, $chainName) ?>"
+												   class="btn btn-sm btn-primary">Edit</a>
+
+												<a href="#" class="btn btn-sm btn-danger">Remove</a>
+											</td>
+										</tr>
+									<?php endforeach ?>
+								</tbody>
+							</table>
+						<?php endif ?>
+					<?php endforeach ?>
+				<?php endforeach ?>
+			<?php endif ?>
+		</div>
+
+		<script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+		<script src="./assets/js/bootstrap.min.js"></script>
+	</body>
+</html>
