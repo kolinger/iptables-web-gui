@@ -12,32 +12,41 @@ $iptables->setOnFly(FALSE);
 
 $flashes = array();
 $editDialogDisplayed = FALSE;
+$editDialogAction = './index.php';
 
-/**
- * @param \stdClass $rule
- * @param string $table
- * @param string $chain
- * @return string
- */
-function buildQueryFromRule(\stdClass $rule, $table, $chain) {
+function buildQueryFromRule(\stdClass $rule, $table, $chain)
+{
 	$rule = clone $rule;
 	$parameters = array();
-	$parameters['prot'] = $rule->prot;
+	$parameters['protocol'] = $rule->protocol;
 	$parameters['in'] = $rule->in;
 	$parameters['out'] = $rule->out;
 	$parameters['source'] = $rule->source;
 	$parameters['destination'] = $rule->destination;
 	$parameters['target'] = $rule->target;
-	if (preg_match('~(d|s)pts?:([0-9:]+)~i', $rule->misc, $matches)) {
+	if (preg_match('~--(d|s)port ([0-9:]+)~i', $rule->additional, $matches)) {
 		$parameters[$matches[1] . 'port'] = $matches[2];
-		$rule->misc = str_replace($matches[0], '', $rule->misc);
+		$rule->additional = str_replace($matches[0], '', $rule->additional);
 	}
-	$parameters['additional'] = preg_replace('~ ([a-z]{1,1} [a-z0-9]+)~i', '-\\1', ' ' . $rule->misc);
-	$parameters['additional'] = trim(preg_replace('~ ([a-z]{2,} [a-z0-9]+)~i', '--\\1', $parameters['additional']));
-	$parameters['additional'] = str_replace('--state', '-m state --state', $parameters['additional']); // TODO: how to fix this generally for all these arguments?
+	$parameters['additional'] = trim($rule->additional);
 	$parameters['table'] = $table;
 	$parameters['chain'] = $chain;
 	return http_build_query($parameters);
+}
+
+function buildRuleFromQuery()
+{
+	$rule = new \stdClass();
+	$rule->in = isset($_GET['in']) ? $_GET['in'] : '';
+	$rule->out = isset($_GET['out']) ? $_GET['out'] : '';
+	$rule->source = isset($_GET['source']) ? $_GET['source'] : '';
+	$rule->destination = isset($_GET['destination']) ? $_GET['destination'] : '';
+	$rule->protocol = isset($_GET['protocol']) ? $_GET['protocol'] : '';
+	$rule->dport = isset($_GET['dport']) ? $_GET['dport'] : '';
+	$rule->sport = isset($_GET['sport']) ? $_GET['sport'] : '';
+	$rule->additional = isset($_GET['additional']) ? trim($_GET['additional']) : '';
+	$rule->target = isset($_GET['target']) ? $_GET['target'] : '';
+	return $rule;
 }
 
 if (isset($_GET['reload'])) {
@@ -70,6 +79,10 @@ if (isset($_GET['import'])) {
 
 if (isset($_GET['edit'])) {
 	$editDialogDisplayed = TRUE;
+	$table = $_GET['table'];
+	$chain = $_GET['chain'];
+	$rule = buildRuleFromQuery();
+	$editDialogAction .= '?edit&' . buildQueryFromRule($rule, $table, $chain);
 }
 
 if (isset($_GET['add'])) {

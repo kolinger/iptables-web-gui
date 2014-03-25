@@ -8,6 +8,10 @@
 
 		<link href="./assets/css/bootstrap.min.css" rel="stylesheet"/>
 		<link href="./assets/css/bootstrap-theme.min.css" rel="stylesheet"/>
+		<style>
+			.page-header:first-child { margin-top: 0; }
+			.page-header:first-child h1 { margin-top: 0; }
+		</style>
 	</head>
 	<body>
 		<nav class="navbar navbar-default" role="navigation">
@@ -59,7 +63,7 @@
 			<?php endforeach ?>
 
 			<?php if ($editDialogDisplayed) : ?>
-				<form role="form" action="<?php $editDialogAction ?>" method="post">
+				<form role="form" action="<?php echo $editDialogAction ?>" method="post">
 					<div class="form-group">
 						<label for="table">Table</label>
 						<select name="table" id="table" class="form-control">
@@ -128,6 +132,7 @@
 							<option value="DENY"<?php echo isset($_GET['target']) && $_GET['target'] === 'DENY' ? ' selected="selected"' : '' ?>>DENY</option>
 							<option value="MASQUERADE"<?php echo isset($_GET['target']) && $_GET['target'] === 'MASQUERADE' ? ' selected="selected"' : '' ?>>MASQUERADE</option>
 							<option value="REDIRECT"<?php echo isset($_GET['target']) && $_GET['target'] === 'REDIRECT' ? ' selected="selected"' : '' ?>>REDIRECT</option>
+							<option value="DNAT"<?php echo isset($_GET['target']) && $_GET['target'] === 'DNAT' ? ' selected="selected"' : '' ?>>DNAT</option>
 						</select>
 					</div>
 					<a href="./index.php" class="btn btn-default">Cancel</a>
@@ -170,8 +175,8 @@
 											<td><?php echo $rule->out ?></td>
 											<td><?php echo $rule->source ?></td>
 											<td><?php echo $rule->destination ?></td>
-											<td><?php echo $rule->prot ?></td>
-											<td><?php echo $rule->misc ?></td>
+											<td><?php echo $rule->protocol ?></td>
+											<td><?php echo $rule->additional ?></td>
 											<td>
 												<span class="label label-<?php echo $rule->target === 'ACCEPT' ? 'success' :
 													($rule->target === 'DROP' ? 'danger' : 'default') ?>">

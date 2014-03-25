@@ -60,24 +60,6 @@ class Iptables
 
 
 	/**
-	 * @param string $ip6executable
-	 */
-	public function setIp6executable($ip6executable)
-	{
-		$this->ip6executable = $ip6executable;
-	}
-
-
-	/**
-	 * @return string
-	 */
-	public function getIp6executable()
-	{
-		return $this->ip6executable;
-	}
-
-
-	/**
 	 * @param array $tables
 	 */
 	public function setTables($tables)
@@ -214,7 +196,7 @@ class Iptables
 		// columns positions, must be in right order!
 		$columns = array(
 			'target' => strpos($lines[1], 'target'),
-			'prot' => strpos($lines[1], 'prot'),
+			'protocol' => strpos($lines[1], 'prot'),
 			'opt' => strpos($lines[1], 'opt'),
 			'in' => strpos($lines[1], 'in'),
 			'out' => strpos($lines[1], 'out'),
@@ -238,7 +220,7 @@ class Iptables
 				if ($name === 'destination') { // last column - need check for additional parameters
 					$delimiter = strpos($rule->$name, '  ');
 					if ($delimiter !== FALSE) {
-						$rule->misc = trim(substr($rule->$name, $delimiter, strlen($rule->$name)));
+						$rule->additional = trim(substr($rule->$name, $delimiter, strlen($rule->$name)));
 						$rule->$name = trim(substr($rule->$name, 0, $delimiter));
 					}
 				}
@@ -254,8 +236,8 @@ class Iptables
 	 */
 	private function formatRule(\stdClass $rule)
 	{
-		if ($rule->prot === 'all') {
-			$rule->prot = '';
+		if ($rule->protocol === 'all') {
+			$rule->protocol = '';
 		}
 
 		if ($rule->opt === '--') {
@@ -280,11 +262,18 @@ class Iptables
 			$rule->destination = '';
 		}
 
-		if (!isset($rule->misc)) {
-			$rule->misc = '';
+		if (!isset($rule->additional)) {
+			$rule->additional = '';
 		} else {
-			// remove ambiguous protocol
-			$rule->misc = preg_replace('~(?:tcp|udp) ((?:d|s)pts?:[0-9:]+)~i', '\\1', $rule->misc);
+			// format ports
+			$rule->additional = preg_replace('~(?:tcp|udp) (?:(d|s)pts?:([0-9:]+))~i', '\\1port \\2', $rule->additional);
+
+			// add dashes
+			$rule->additional = preg_replace('~ ([a-z]{1,1})(?: |:)([a-z0-9]+)~i', ' -\\1 \\2', ' ' . $rule->additional);
+			$rule->additional = trim(preg_replace('~ ([a-z]{2,})(?: |:)([a-z0-9]+)~i', ' --\\1 \\2', $rule->additional));
+
+			// fix state
+			$rule->additional = str_replace('--state', '-m state --state', $rule->additional);
 		}
 
 		return $rule;
@@ -298,8 +287,8 @@ class Iptables
 	private function buildParameters(\stdClass $rule)
 	{
 		$parameters = array();
-		if ($rule->prot) {
-			$parameters[] = '-p ' . $rule->prot;
+		if ($rule->protocol) {
+			$parameters[] = '-p ' . $rule->protocol;
 		}
 
 		if ($rule->in) {
@@ -318,16 +307,12 @@ class Iptables
 			$parameters[] = '-d ' . $rule->destination;
 		}
 
-		if ($rule->misc) {
-			$parts = explode(' ', $rule->misc);
+		if ($rule->additional) {
+			$parts = explode(' ', $rule->additional);
 			$count = count($parts);
 			for ($index = 0; $index < $count; $index += 2) {
 				$parameters[] = (strlen($parts[$index]) == 1 ? '-' : '--') . $parts[$index] . ' ' . $parts[$index + 1];
 			}
-		}
-
-		if (isset($rule->additional)) {
-			$parameters[] = $rule->additional;
 		}
 
 		return implode(' ', $parameters);
