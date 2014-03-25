@@ -34,18 +34,22 @@ function buildQueryFromRule(\stdClass $rule, $table, $chain)
 	return http_build_query($parameters);
 }
 
-function buildRuleFromQuery()
+function buildRuleFromQuery(array $array)
 {
 	$rule = new \stdClass();
-	$rule->in = isset($_GET['in']) ? $_GET['in'] : '';
-	$rule->out = isset($_GET['out']) ? $_GET['out'] : '';
-	$rule->source = isset($_GET['source']) ? $_GET['source'] : '';
-	$rule->destination = isset($_GET['destination']) ? $_GET['destination'] : '';
-	$rule->protocol = isset($_GET['protocol']) ? $_GET['protocol'] : '';
-	$rule->dport = isset($_GET['dport']) ? $_GET['dport'] : '';
-	$rule->sport = isset($_GET['sport']) ? $_GET['sport'] : '';
-	$rule->additional = isset($_GET['additional']) ? trim($_GET['additional']) : '';
-	$rule->target = isset($_GET['target']) ? $_GET['target'] : '';
+	$rule->in = isset($array['in']) ? $array['in'] : '';
+	$rule->out = isset($array['out']) ? $array['out'] : '';
+	$rule->source = isset($array['source']) ? $array['source'] : '';
+	$rule->destination = isset($array['destination']) ? $array['destination'] : '';
+	$rule->protocol = isset($array['protocol']) ? $array['protocol'] : '';
+	$rule->additional = isset($array['additional']) ? trim($array['additional']) : '';
+	if (isset($array['dport']) && $array['dport']) {
+		$rule->additional .= ' --dport ' . $array['dport'];
+	}
+	if (isset($array['sport']) && $array['sport']) {
+		$rule->additional .= ' --sport ' . $array['sport'];
+	}
+	$rule->target = isset($array['target']) ? $array['target'] : '';
 	return $rule;
 }
 
@@ -77,16 +81,29 @@ if (isset($_GET['import'])) {
 	}
 }
 
+if (isset($_GET['remove'])) {
+	$rule = buildRuleFromQuery($_GET);
+	$iptables->remove($rule, $_GET['table'], $_GET['chain']);
+}
+
 if (isset($_GET['edit'])) {
 	$editDialogDisplayed = TRUE;
-	$table = $_GET['table'];
-	$chain = $_GET['chain'];
-	$rule = buildRuleFromQuery();
-	$editDialogAction .= '?edit&' . buildQueryFromRule($rule, $table, $chain);
+	$rule = buildRuleFromQuery($_GET);
+	$editDialogAction .= '?edit&' . buildQueryFromRule($rule, $_GET['table'], $_GET['chain']);
+	if (isset($_POST['submit'])) {
+		$iptables->remove($rule, $_GET['table'], $_GET['chain']);
+		$newRule = buildRuleFromQuery($_POST);
+		$iptables->add($newRule, $_POST['table'], $_POST['chain']);
+	}
 }
 
 if (isset($_GET['add'])) {
 	$editDialogDisplayed = TRUE;
+	$editDialogAction .= '?add';
+	if (isset($_POST['submit'])) {
+		$rule = buildRuleFromQuery($_POST);
+		$iptables->add($rule, $_POST['table'], $_POST['chain']);
+	}
 }
 
 include __DIR__ . '/template.phtml';

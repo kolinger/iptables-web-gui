@@ -134,11 +134,13 @@ class Iptables
 	 * @param \stdClass $rule
 	 * @param string $table
 	 * @param string $chain
+	 * @return string
 	 */
 	public function add(\stdClass $rule, $table, $chain)
 	{
-		$parameters = $this->buildParameters($rule);
-		var_dump($parameters);
+		$parameters = '-t ' . $table . ' -A ' . $chain . ' ';
+		$parameters .= $this->buildParameters($rule);
+		return $this->execute($parameters);
 	}
 
 
@@ -146,11 +148,13 @@ class Iptables
 	 * @param \stdClass $rule
 	 * @param string $table
 	 * @param string $chain
+	 * @return string
 	 */
 	public function remove(\stdClass $rule, $table, $chain)
 	{
-		$parameters = $this->buildParameters($rule);
-		var_dump($parameters);
+		$parameters = '-t ' . $table . ' -D ' . $chain . ' ';
+		$parameters .= $this->buildParameters($rule);
+		return $this->execute($parameters);
 	}
 
 
@@ -252,11 +256,9 @@ class Iptables
 			$rule->out = '';
 		}
 
-
 		if ($rule->source === '0.0.0.0/0') {
 			$rule->source = '';
 		}
-
 
 		if ($rule->destination === '0.0.0.0/0') {
 			$rule->destination = '';
@@ -308,11 +310,11 @@ class Iptables
 		}
 
 		if ($rule->additional) {
-			$parts = explode(' ', $rule->additional);
-			$count = count($parts);
-			for ($index = 0; $index < $count; $index += 2) {
-				$parameters[] = (strlen($parts[$index]) == 1 ? '-' : '--') . $parts[$index] . ' ' . $parts[$index + 1];
-			}
+			$parameters[] = trim($rule->additional);
+		}
+
+		if ($rule->target) {
+			$parameters[] = '-j ' . $rule->target;
 		}
 
 		return implode(' ', $parameters);

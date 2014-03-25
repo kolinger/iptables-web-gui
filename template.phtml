@@ -28,6 +28,7 @@
 						<?php if (!$iptables->getOnFly()) : ?>
 							<li><a href="?reload">Reload</a></li>
 						<?php endif ?>
+						<li><a href="?add">Add new rule</a></li>
 					</ul>
 				</div>
 			</div>
@@ -136,7 +137,7 @@
 						</select>
 					</div>
 					<a href="./index.php" class="btn btn-default">Cancel</a>
-					<input type="submit" value="Save" class="btn btn-primary" />
+					<input type="submit" name="submit" value="Save" class="btn btn-primary" />
 				</form>
 			<?php else : ?>
 				<?php foreach ($iptables->getTables() as $tableName => $chains) : ?>
@@ -187,7 +188,8 @@
 												<a href="?edit&<?php echo buildQueryFromRule($rule, $tableName, $chainName) ?>"
 												   class="btn btn-sm btn-primary">Edit</a>
 
-												<a href="#" class="btn btn-sm btn-danger">Remove</a>
+												<a href="?remove&<?php echo buildQueryFromRule($rule, $tableName, $chainName) ?>"
+												   class="btn btn-sm btn-danger">Remove</a>
 											</td>
 										</tr>
 									<?php endforeach ?>
