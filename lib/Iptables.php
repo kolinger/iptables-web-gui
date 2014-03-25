@@ -6,10 +6,6 @@
 class Iptables
 {
 
-	const MODE_IP4 = 0;
-	const MODE_IP6 = 1;
-	const MODE_HYBRID = 2;
-
 	/**
 	 * @var string
 	 */
@@ -18,22 +14,12 @@ class Iptables
 	/**
 	 * @var string
 	 */
-	private $ip4executable = 'iptables';
-
-	/**
-	 * @var string
-	 */
-	private $ip6executable = 'ip6tables';
+	private $executable = 'iptables';
 
 	/**
 	 * @var SSH
 	 */
 	private $ssh;
-
-	/**
-	 * @var int
-	 */
-	private $mode = self::MODE_HYBRID;
 
 	/**
 	 * @var array
@@ -58,18 +44,18 @@ class Iptables
 	/**
 	 * @param string $ip4executable
 	 */
-	public function setIp4executable($ip4executable)
+	public function setExecutable($ip4executable)
 	{
-		$this->ip4executable = $ip4executable;
+		$this->executable = $ip4executable;
 	}
 
 
 	/**
 	 * @return string
 	 */
-	public function getIp4executable()
+	public function getExecutable()
 	{
-		return $this->ip4executable;
+		return $this->executable;
 	}
 
 
@@ -88,24 +74,6 @@ class Iptables
 	public function getIp6executable()
 	{
 		return $this->ip6executable;
-	}
-
-
-	/**
-	 * @param int $mode
-	 */
-	public function setMode($mode)
-	{
-		$this->mode = $mode;
-	}
-
-
-	/**
-	 * @return int
-	 */
-	public function getMode()
-	{
-		return $this->mode;
 	}
 
 
@@ -165,7 +133,7 @@ class Iptables
 	 */
 	public function export()
 	{
-		return $this->ssh->execute($this->ip4executable . '-save');
+		return $this->ssh->execute($this->executable . '-save');
 	}
 
 
@@ -176,7 +144,7 @@ class Iptables
 	 */
 	public function import($configuration)
 	{
-		return $this->ssh->execute($this->ip4executable . '-restore --test <<< "' . $configuration . '"');
+		return $this->ssh->execute($this->executable . '-restore --test <<< "' . $configuration . '"');
 	}
 
 
@@ -232,7 +200,7 @@ class Iptables
 		} else {
 			$parameters = '-L ' . $chain . ' -n -v';
 		}
-		$output = $this->executeIp4iptables($parameters);
+		$output = $this->execute($parameters);
 		if (!preg_match('~Chain [a-z]+ \(policy ([a-z]+)~i', $output, $matches)) {
 			throw new \Exception('Executing of iptables with parameters ' . $parameters . ' failed, got wrong
 				output: ' . $output);
@@ -370,18 +338,8 @@ class Iptables
 	 * @param string $parameters
 	 * @return string
 	 */
-	private function executeIp4iptables($parameters)
+	private function execute($parameters)
 	{
-		return $this->ssh->execute($this->ip4executable . ' ' . $parameters);
-	}
-
-
-	/**
-	 * @param string $parameters
-	 * @return string
-	 */
-	private function executeIp6iptables($parameters)
-	{
-		return $this->ssh->execute($this->ip6executable . ' ' . $parameters);
+		return $this->ssh->execute($this->executable . ' ' . $parameters);
 	}
 }
