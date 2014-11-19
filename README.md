@@ -35,7 +35,7 @@ Example:
 location {
   allow 123.123.123.123;
   deny all;
-  
+
   auth_basic "iptables";
   auth_basic_user_file /path/to/htpasswd;
 }
@@ -44,3 +44,4 @@ location {
 TODO
 ----
 - ipv6 support
+
